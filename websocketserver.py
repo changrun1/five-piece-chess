@@ -9,7 +9,7 @@ async def remove_empty_rooms():
         await asyncio.sleep(60) 
         empty_rooms = []
         for room_number, clients in rooms.items():
-            if not clients[0].open and not clients[1].open:
+            if not clients[0].open or not clients[1].open:
                 empty_rooms.append(room_number)
         for room_number in empty_rooms:
             del rooms[room_number]
@@ -50,9 +50,7 @@ async def match_clients(room):
         await client2.send(json.dumps(message2))
     except websockets.exceptions.ConnectionClosedError:
         pass
-    
-    connected_clients.remove(client1)
-    connected_clients.remove(client2)
+    connected_clients = []
 
 
 

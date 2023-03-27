@@ -159,7 +159,7 @@ class AI {
 
       while (count <= 5) {
         if (r >= 0 && r < ROWS && c >= 0 && c < COLS ) {
-          score += AI.checkDirection(r, c, directions[i]);
+          score += Math.abs(AI.checkDirection(r, c, directions[i]));
           r += directions[i][0];
           c += directions[i][1];
         }
@@ -171,16 +171,28 @@ class AI {
   }
 
 
-  getNextMove(board) {
-    // 三就直接跑不動了
-    const maxDepth = 2;
-    
-    const [row, col, score] = ai.minimax(board, maxDepth, ai.color === 2, -Infinity , Infinity);
-    
+  getNextMove(board, maximizingPlayer, maxDepth) {
+
+    let [row, col, score] = ai.minimax(board, maxDepth, maximizingPlayer, -Infinity , Infinity, 0);
+    if(Math.abs(score) >= 500000){
+      return [row, col];
+    }
+    maxDepth = 3;
+    [row, col, score] = ai.minimax(board, maxDepth, maximizingPlayer, -Infinity , Infinity, 0);
+    if(Math.abs(score) >= 500000){
+      return [row, col];
+    }
+    maxDepth = 5;
+    [row, col, score] = ai.minimax(board, maxDepth, maximizingPlayer, -Infinity , Infinity, 0);
+    if(Math.abs(score) >= 500000){
+      return [row, col];
+    }
     return [row, col];
   }
 
-  minimax(board, depth, maximizingPlayer, alpha, beta) {
+  minimax(board, depth, maximizingPlayer, alpha, beta, nodeCount) {
+    nodeCount += 1;
+    
     if (depth === 0) {
       return [-1, -1, AI.evaluate(board)];
     }
@@ -188,52 +200,74 @@ class AI {
       let maxEval = -Infinity;
       let bestRow = -1;
       let bestCol = -1;
+      let evalList = [];
       for (let row = 0; row < ROWS; row++) {
         for (let col = 0; col < COLS; col++) {
           if (board[row][col] === 0) {
             board[row][col] = 1;
-            const evaluation = this.minimax(board, depth - 1,false, alpha, beta)[2];
+            const evaluation = AI.evaluatePosition(board, row, col);
             board[row][col] = 0;
-            if (evaluation >= maxEval) {
-              maxEval = evaluation;
-              bestRow = row;
-              bestCol = col;
-            }
-            alpha = Math.max(alpha, evaluation);
-            if (beta < alpha) {
-              return [row, col, Infinity];
-            }
+            evalList.push([row, col, evaluation]);
           }
         }
       }
-      return [bestRow, bestCol, maxEval];
+      evalList.sort((a, b) => Math.abs(b[2]) - Math.abs(a[2]));
+      evalList = evalList.slice(0, 20);
+      for (let i = 0; i < evalList.length; i++) {
+        const row = evalList[i][0];
+        const col = evalList[i][1];
+        board[row][col] = 1;
+        const evaluation = this.minimax(board, depth - 1,false, alpha, beta, nodeCount)[2];
+        board[row][col] = 0;
+        if (evaluation >= maxEval) {
+          maxEval = evaluation;
+          bestRow = row;
+          bestCol = col;
+        }
+        alpha = Math.max(alpha, evaluation);
+        if (beta <= alpha) {
+          return [row, col, Infinity, nodeCount];
+        }
+      }
+      return [bestRow, bestCol, maxEval, nodeCount];
     } else {
       let minEval = Infinity;
       let bestRow = -1;
       let bestCol = -1;
+      let evalList = [];
       for (let row = 0; row < ROWS; row++) {
         for (let col = 0; col < COLS; col++) {
           if (board[row][col] === 0) {
             board[row][col] = 2;
-            const evaluation = this.minimax(board, depth - 1, true, alpha, beta)[2];
+            const evaluation = AI.evaluatePosition(board, row, col);
             board[row][col] = 0;
-            if (evaluation <= minEval) {
-              minEval = evaluation;
-              bestRow = row;
-              bestCol = col;
-            }
-            beta = Math.min(beta, evaluation);
-            if (beta < alpha) {
-              return [row, col, -Infinity];
-            }
+            evalList.push([row, col, evaluation]);
           }
         }
       }
-      return [bestRow, bestCol, minEval];
+      evalList.sort((a, b) => Math.abs(b[2]) - Math.abs(a[2]));
+      evalList = evalList.slice(0, 20);
+      for (let i = 0; i < evalList.length; i++) {
+        const row = evalList[i][0];
+        const col = evalList[i][1];
+        board[row][col] = 2;
+        const evaluation = this.minimax(board, depth - 1, true, alpha, beta, nodeCount)[2];
+        board[row][col] = 0;
+        if (evaluation <= minEval) {
+          minEval = evaluation;
+          bestRow = row;
+          bestCol = col;
+        }
+        beta = Math.min(beta, evaluation);
+        if (beta <= alpha) {
+          return [row, col, -Infinity, nodeCount];
+        }
+      }
+      return [bestRow, bestCol, minEval, nodeCount];
     }
   }
-
 }
+
 
 let ai = new AI();
 
@@ -388,7 +422,7 @@ function playerMove(row, col) {
 function aiMove() {
   setTimeout(() => {
       
-      const [row, col] = ai.getNextMove(board);
+      const [row, col] = ai.getNextMove(board, ai.color === 2, 1);
       board[row][col] = ai.color;
 
       const square = document.getElementsByClassName("square")[row*15+col];

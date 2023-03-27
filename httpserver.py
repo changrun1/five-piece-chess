@@ -38,8 +38,8 @@ class MyHandler(BaseHTTPRequestHandler):
 
 
 def main():
-    http_server = HTTPServer(('0.0.0.0', 8000), MyHandler)
-    print("HTTP server started on port 8000")
+    http_server = HTTPServer(('0.0.0.0', 80), MyHandler)
+    print("HTTP server started on port 80")
     http_server.serve_forever()
 
 if __name__ == '__main__':

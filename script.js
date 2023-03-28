@@ -77,11 +77,9 @@ class AI {
     let c = col;
     let count = 0;
     let score = 0;
-    if (r + direction[0]*5 < 0 || r + direction[0]*5 >= ROWS || c + direction[1]*5 < 0 || c + direction[1]*5 >= COLS) {
-      return 0;
-    }
 
-    while (r >= 0 && r < ROWS && c >= 0 && c < COLS && (piece === 0 || piece === board[r][c]) && count < 5) {
+
+    while (r >= 0 && r < ROWS && c >= 0 && c < COLS && (piece === 0 || piece === board[r][c] || board[r][c] === 0) && count < 5) {
       if(piece === 0){
         piece = board[r][c];
       }if (board[r][c] === 1) {
@@ -101,11 +99,11 @@ class AI {
       case -5:
         return -Infinity;
       case -4:
-        return -500;
+        return -1000;
       case -3:
         return -100;
       case -2:
-        return -10;
+        return -8;
       case -1:
         return -1;
       case 0:
@@ -113,11 +111,11 @@ class AI {
       case 1:
         return 1;
       case 2:
-        return 10;
+        return 8;
       case 3:
         return 100;
       case 4:
-        return 500;
+        return 1000;
       case 5:
         return Infinity;
       default:
@@ -129,10 +127,10 @@ class AI {
   static evaluate(board) {
     let score = 0;
     const directions = [
-      [0, 1], // 水平方向
-      [1, 0], // 垂直方向
-      [1, 1], // 右下方向
-      [-1, 1] // 左下方向
+      [0, 1],
+      [1, 0],
+      [1, 1],
+      [-1, 1]
     ];
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
@@ -147,52 +145,65 @@ class AI {
   static evaluatePosition(board, row, col) {
     let score = 0;
     const directions = [
-      [0, 1], // 水平方向
-      [1, 0], // 垂直方向
-      [1, 1], // 右下方向
-      [-1, 1] // 左下方向
+      [0, 1],
+      [1, 0],
+      [1, 1],
+      [-1, 1]
     ];
+    
     for (let i = 0; i < directions.length; i++) {
-      let count = 0;
       let r = row - directions[i][0]*4;
       let c = col - directions[i][1]*4;
-
-      while (count <= 5) {
+      for (let j = 0; j < 5; j++) {
+        
         if (r >= 0 && r < ROWS && c >= 0 && c < COLS ) {
           score += Math.abs(AI.checkDirection(r, c, directions[i]));
-          r += directions[i][0];
-          c += directions[i][1];
+          //console.log(`score: ${Math.abs(AI.checkDirection(r, c, directions[i]))}`);
         }
-       
-        count++;
+        r += directions[i][0];
+        c += directions[i][1];
+        
       }
     }
     return score;
   }
 
 
-  getNextMove(board, maximizingPlayer, maxDepth) {
+  getNextMove(board, maximizingPlayer, maxDepth, breadth) {
 
-    let [row, col, score] = ai.minimax(board, maxDepth, maximizingPlayer, -Infinity , Infinity, 0);
-    if(Math.abs(score) >= 500000){
+    
+    console.log(`player: ${maximizingPlayer}`);
+    let [row, col, score] = ai.minimax(board, 1, maximizingPlayer, -Infinity , Infinity, 0, 100);
+    console.log(`depth 1: ${score}`);
+    if(Math.abs(score) >= 5000000){
+      
       return [row, col];
     }
-    maxDepth = 3;
-    [row, col, score] = ai.minimax(board, maxDepth, maximizingPlayer, -Infinity , Infinity, 0);
-    if(Math.abs(score) >= 500000){
+
+    /*[row, col, score] = ai.minimax(board, 2, maximizingPlayer, -Infinity , Infinity, 0, 100);
+    console.log(`depth 2: ${score}`);
+    if(Math.abs(score) >= 5000000){
+      return [row, col];
+    }*/
+
+    [row, col, score] = ai.minimax(board, 3, maximizingPlayer, -Infinity , Infinity, 0, 60);
+    console.log(`depth 3: ${score}`);
+    if(Math.abs(score) >= 5000000){
       return [row, col];
     }
-    maxDepth = 5;
-    [row, col, score] = ai.minimax(board, maxDepth, maximizingPlayer, -Infinity , Infinity, 0);
-    if(Math.abs(score) >= 500000){
+
+    /*[row, col, score] = ai.minimax(board, 4, maximizingPlayer, -Infinity , Infinity, 0, 30);
+    console.log(`depth 4: ${score}`);
+    if(Math.abs(score) >= 5000000){
       return [row, col];
-    }
+    }*/
+    [row, col, score] = ai.minimax(board, maxDepth, maximizingPlayer, -Infinity , Infinity, 0, breadth);
+    console.log(`depth ${maxDepth}: ${score}`);
     return [row, col];
   }
 
-  minimax(board, depth, maximizingPlayer, alpha, beta, nodeCount) {
+  minimax(board, depth, maximizingPlayer, alpha, beta, nodeCount, breadth) {
     nodeCount += 1;
-    
     if (depth === 0) {
       return [-1, -1, AI.evaluate(board)];
     }
@@ -204,20 +215,24 @@ class AI {
       for (let row = 0; row < ROWS; row++) {
         for (let col = 0; col < COLS; col++) {
           if (board[row][col] === 0) {
-            board[row][col] = 1;
             const evaluation = AI.evaluatePosition(board, row, col);
-            board[row][col] = 0;
             evalList.push([row, col, evaluation]);
           }
         }
       }
-      evalList.sort((a, b) => Math.abs(b[2]) - Math.abs(a[2]));
-      evalList = evalList.slice(0, 20);
+      evalList.sort((a, b) => b[2] - a[2]);
+      evalList = evalList.slice(0, breadth);
       for (let i = 0; i < evalList.length; i++) {
         const row = evalList[i][0];
         const col = evalList[i][1];
         board[row][col] = 1;
-        const evaluation = this.minimax(board, depth - 1,false, alpha, beta, nodeCount)[2];
+
+        
+        const evaluation = this.minimax(board, depth - 1,false, alpha, beta, nodeCount, breadth)[2];
+        if (this.checkWin()) {
+          board[row][col] = 0;
+          return [row, col, Infinity, nodeCount];
+        }
         board[row][col] = 0;
         if (evaluation >= maxEval) {
           maxEval = evaluation;
@@ -226,7 +241,7 @@ class AI {
         }
         alpha = Math.max(alpha, evaluation);
         if (beta <= alpha) {
-          return [row, col, Infinity, nodeCount];
+          return [row, col, alpha, nodeCount];
         }
       }
       return [bestRow, bestCol, maxEval, nodeCount];
@@ -238,20 +253,26 @@ class AI {
       for (let row = 0; row < ROWS; row++) {
         for (let col = 0; col < COLS; col++) {
           if (board[row][col] === 0) {
-            board[row][col] = 2;
+            
             const evaluation = AI.evaluatePosition(board, row, col);
-            board[row][col] = 0;
             evalList.push([row, col, evaluation]);
           }
         }
       }
-      evalList.sort((a, b) => Math.abs(b[2]) - Math.abs(a[2]));
-      evalList = evalList.slice(0, 20);
+      evalList.sort((a, b) => b[2] - a[2]);
+      evalList = evalList.slice(0, breadth);
       for (let i = 0; i < evalList.length; i++) {
         const row = evalList[i][0];
         const col = evalList[i][1];
         board[row][col] = 2;
-        const evaluation = this.minimax(board, depth - 1, true, alpha, beta, nodeCount)[2];
+
+        const evaluation = this.minimax(board, depth - 1, true, alpha, beta, nodeCount, breadth)[2];
+
+        if (this.checkWin()) {
+          board[row][col] = 0;
+          return [row, col, -Infinity, nodeCount];
+        }
+        
         board[row][col] = 0;
         if (evaluation <= minEval) {
           minEval = evaluation;
@@ -260,7 +281,7 @@ class AI {
         }
         beta = Math.min(beta, evaluation);
         if (beta <= alpha) {
-          return [row, col, -Infinity, nodeCount];
+          return [row, col, beta, nodeCount];
         }
       }
       return [bestRow, bestCol, minEval, nodeCount];
@@ -361,6 +382,8 @@ function setGameMode(mode) {
   }
 }
 function playerMove(row, col) {
+  const evaluation = AI.evaluatePosition(board, row, col);
+  console.log(`evaluation: ${evaluation}`);
   if (gameMode === GAME_MODE.ONLINE && match_found === 0) {
       return;
   }
@@ -422,7 +445,7 @@ function playerMove(row, col) {
 function aiMove() {
   setTimeout(() => {
       
-      const [row, col] = ai.getNextMove(board, ai.color === 2, 1);
+      const [row, col] = ai.getNextMove(board, ai.color === 1, 5, 24);
       board[row][col] = ai.color;
 
       const square = document.getElementsByClassName("square")[row*15+col];

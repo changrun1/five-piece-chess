@@ -103,7 +103,7 @@ class AI {
       case -3:
         return -100;
       case -2:
-        return -8;
+        return -10;
       case -1:
         return -1;
       case 0:
@@ -111,7 +111,7 @@ class AI {
       case 1:
         return 1;
       case 2:
-        return 8;
+        return 10;
       case 3:
         return 100;
       case 4:
@@ -220,6 +220,7 @@ class AI {
           }
         }
       }
+      evalList = evalList.filter((item) => item[2] !== 0);
       evalList.sort((a, b) => b[2] - a[2]);
       evalList = evalList.slice(0, breadth);
       for (let i = 0; i < evalList.length; i++) {
@@ -229,10 +230,7 @@ class AI {
 
         
         const evaluation = this.minimax(board, depth - 1,false, alpha, beta, nodeCount, breadth)[2];
-        if (this.checkWin()) {
-          board[row][col] = 0;
-          return [row, col, Infinity, nodeCount];
-        }
+        
         board[row][col] = 0;
         if (evaluation >= maxEval) {
           maxEval = evaluation;
@@ -259,6 +257,7 @@ class AI {
           }
         }
       }
+      evalList = evalList.filter((item) => item[2] !== 0);
       evalList.sort((a, b) => b[2] - a[2]);
       evalList = evalList.slice(0, breadth);
       for (let i = 0; i < evalList.length; i++) {
@@ -268,10 +267,6 @@ class AI {
 
         const evaluation = this.minimax(board, depth - 1, true, alpha, beta, nodeCount, breadth)[2];
 
-        if (this.checkWin()) {
-          board[row][col] = 0;
-          return [row, col, -Infinity, nodeCount];
-        }
         
         board[row][col] = 0;
         if (evaluation <= minEval) {
@@ -306,7 +301,7 @@ function setGameMode(mode) {
         socket.close();
     }
     resetGame()
-    socket = new WebSocket(`ws://123.194.35.219:8765`);
+    socket = new WebSocket(`ws://changrun.zapto.org:8765`);
     
     socket.addEventListener('open', (event) => {
       console.log('Connected to WebSocket server');
@@ -452,7 +447,7 @@ function aiMove() {
       square.classList.add(ai.color === 1 ? "black-piece" : "white-piece");
       history.push([row, col]);
       player = player === 1 ? 2 : 1;
-  }, 0);
+  }, 10);
   setTimeout(() => {
     const winner = ai.checkWin();
     if (winner !== 0) {
@@ -460,7 +455,7 @@ function aiMove() {
       gameStatus.innerHTML = `${winner === 1 ? "黑方" : "白方"}玩家贏了!`;
       gameOver = 1;
     }
-  }, 10);
+  }, 20);
 }
 
 function resetGame() {
@@ -485,7 +480,13 @@ function resetGame() {
   player = 1;
   gameOver = 0;
   if (gameMode === GAME_MODE.PLAYER_VS_COMPUTER && player === ai.color) {
-    aiMove();
+    const [row, col] = [7,7];
+    board[row][col] = ai.color;
+
+    const square = document.getElementsByClassName("square")[row*15+col];
+    square.classList.add(ai.color === 1 ? "black-piece" : "white-piece");
+    history.push([row, col]);
+    player = player === 1 ? 2 : 1;
   }
 }
 

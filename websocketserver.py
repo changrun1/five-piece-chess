@@ -20,7 +20,12 @@ async def handle_websocket(websocket):
         room = []
         for client in connected_clients:
             room.append(client)
-        await match_clients(room)
+        if room[0].open and room[1].open:
+            await match_clients(room)
+        else:
+            if not room[0].open or not room[1].open:
+                connected_clients.remove(room[0])
+                connected_clients.remove(room[1])
     async for message in websocket:
         message_dict = json.loads(message)
         if message_dict["type"] == "move":
